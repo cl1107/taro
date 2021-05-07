@@ -59,7 +59,10 @@ const onAndSyncApis = {
   offLocalServiceResolveFail: true,
   offLocalServiceLost: true,
   offLocalServiceFound: true,
-  offLocalServiceDiscoveryStop: true
+  offLocalServiceDiscoveryStop: true,
+
+  onGyroscopeChange: true,
+  offGyroscopeChange: true
 }
 const noPromiseApis = {
   // 媒体
@@ -224,6 +227,9 @@ const otherApis = {
   startDeviceMotionListening: true,
   stopDeviceMotionListening: true,
 
+  startGyroscope: true,
+  stopGyroscope: true,
+
   // 界面
   pageScrollTo: true,
   showToast: true,
@@ -284,6 +290,7 @@ const otherApis = {
   checkIsSupportSoterAuthentication: true,
   startSoterAuthentication: true,
   checkIsSoterEnrolledInDevice: true,
+  getUserProfile: true,
 
   // 订阅消息
   requestSubscribeMessage: true,

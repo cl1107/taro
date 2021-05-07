@@ -49,7 +49,7 @@ export function isAliasPath (name: string, pathAlias: object = {}): boolean {
   return prefixs.includes(name) || (new RegExp(`^(${prefixs.join('|')})/`).test(name))
 }
 
-export function replaceAliasPath (filePath: string, name: string, pathAlias: object = {}) {
+export function replaceAliasPath (filePath: string, name: string, pathAlias: object = {}, env?: string) {
   // 后续的 path.join 在遇到符号链接时将会解析为真实路径，如果
   // 这里的 filePath 没有做同样的处理，可能会导致 import 指向
   // 源代码文件，导致文件被意外修改
@@ -57,7 +57,7 @@ export function replaceAliasPath (filePath: string, name: string, pathAlias: obj
 
   const prefixs = Object.keys(pathAlias)
   if (prefixs.includes(name)) {
-    return promoteRelativePath(path.relative(filePath, fs.realpathSync(resolveScriptPath(pathAlias[name]))))
+    return promoteRelativePath(path.relative(filePath, fs.realpathSync(resolveScriptPath(pathAlias[name], env))))
   }
   const reg = new RegExp(`^(${prefixs.join('|')})/(.*)`)
   name = name.replace(reg, function (m, $1, $2) {
@@ -212,9 +212,13 @@ export function isEmptyObject (obj: any): boolean {
   return true
 }
 
-export function resolveScriptPath (p: string): string {
+export function resolveScriptPath (p: string, env?: string): string {
   const realPath = p
-  const taroEnv = process.env.TARO_ENV
+  let taroEnv = env || process.env.TARO_ENV || ''
+  // Note: H5 在拷贝文件时做了处理，不需要额外的转换
+  if (['h5'].includes(taroEnv)) {
+    taroEnv = ''
+  }
   const SCRIPT_EXT = JS_EXT.concat(TS_EXT)
   for (let i = 0; i < SCRIPT_EXT.length; i++) {
     const item = SCRIPT_EXT[i]
@@ -436,9 +440,11 @@ let babelConfig
 
 export function getBabelConfig (babel) {
   if (!babelConfig) {
+    const getName = (i: any) => Array.isArray(i) ? i[0] : i
     babelConfig = mergeWith({}, defaultBabelConfig, babel, (objValue, srcValue) => {
       if (Array.isArray(objValue)) {
-        return Array.from(new Set(srcValue.concat(objValue)))
+        const set = new Set(srcValue.map(i => getName(i)))
+        return srcValue.concat(objValue.filter(i => !set.has(getName(i))))
       }
     })
   }

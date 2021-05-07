@@ -13,7 +13,7 @@ import PickerGroup from './picker-group'
 import classNames from 'classnames'
 import { TOP, LINE_HEIGHT } from './constant'
 import * as dateHandle from './date'
-import './style/index.scss'
+import './style/index.css'
 
 // todos:
 // 1. 加入滚动惯性
@@ -48,11 +48,25 @@ export default class Picker extends Nerv.Component {
         range = []
         this.props.range = []
       }
-      if (range.length === this.index.length) this.index = []
-      range.forEach((r, i) => {
-        const v = value && value.length ? value[i] : undefined
-        this.index.push(this.verifyValue(v, r) ? Math.floor(value[i]) : 0)
-      })
+      if (range === this.props.range && this.props.value !== value) {
+        this.index = []
+        range.forEach((r, i) => {
+          const v = value && value.length ? value[i] : undefined
+          this.index.push(this.verifyValue(v, r) ? Math.floor(value[i]) : 0)
+        })
+        this.setState({
+          height: this.index.map(i => TOP - i * LINE_HEIGHT)
+        })
+      } else if (range.length !== this.index.length) {
+        range.forEach((r, i) => {
+          if (i >= this.index.length) {
+            this.index.push(0)
+          }
+        })
+        this.setState({
+          height: this.index.map(i => TOP - i * LINE_HEIGHT)
+        })
+      }
     } else if (mode === 'time') {
       // check value...
       if (!this.verifyTime(value)) {
@@ -342,10 +356,16 @@ export default class Picker extends Nerv.Component {
 
     // 统一抛出的事件对象，和小程序对齐
     const getEventObj = (e, type, detail) => {
+      let value = detail;
       Object.defineProperties(e, {
         detail: {
-          value: detail,
-          enumerable: true
+          get: function() {
+            return value;
+          },
+          set: function(v) {
+            value = v;
+          },
+          enumerable: true,
         },
         type: {
           value: type,
@@ -624,7 +644,7 @@ export default class Picker extends Nerv.Component {
     const { name = '' } = this.props
 
     return (
-      <div className={this.props.className}>
+      <div className={classNames('taro-picker', this.props.className)}>
         <div onClick={showPicker}>
           {this.props.children}
         </div>

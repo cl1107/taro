@@ -34,7 +34,7 @@ const genRequest = (loaderRequest, loaders) => {
 }
 
 export function pitch () {
-  const { sourceDir, fileType } = getOptions(this)
+  const { sourceDir, fileType, isBuildPlugin } = getOptions(this)
   const query = qs.parse(this.resourceQuery.slice(1))
 
   let loaders = this.loaders
@@ -42,10 +42,11 @@ export function pitch () {
   if (query.type === 'template') {
     const preLoaders = loaders.filter(isPreLoader)
     const postLoaders = loaders.filter(isPostLoader)
-    let fileLoaderRequest = `file-loader?name=[path][name]${fileType.templ}`
+    let fileLoaderRequest = `${require.resolve('file-loader')}?name=[path][name]${fileType.templ}`
     if (NODE_MODULES_REG.test(this.resourcePath)) {
       const baseContext = path.join(process.cwd(), NODE_MODULES)
-      fileLoaderRequest += `&context=${baseContext}&outputPath=npm`
+      const npmDir = isBuildPlugin ? 'plugin/npm' : 'npm'
+      fileLoaderRequest += `&context=${baseContext}&outputPath=${npmDir}`
     } else {
       fileLoaderRequest += `&context=${sourceDir}`
     }

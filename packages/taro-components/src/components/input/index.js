@@ -3,7 +3,7 @@ import Nerv from 'nervjs'
 import omit from 'omit.js'
 import classNames from 'classnames'
 
-import './index.scss'
+import './style/index.css'
 
 function getTrueType (type, confirmType, password) {
   if (!type) {
@@ -27,6 +27,7 @@ class Input extends Nerv.Component {
   constructor () {
     super(...arguments)
     this.onInput = this.onInput.bind(this)
+    this.onPaste = this.onPaste.bind(this)
     this.onFocus = this.onFocus.bind(this)
     this.onBlur = this.onBlur.bind(this)
     this.onKeyDown = this.onKeyDown.bind(this)
@@ -74,20 +75,32 @@ class Input extends Nerv.Component {
         enumerable: true,
         value: { value }
       })
-      // 修复 IOS 光标跳转问题
-      if (!(['number', 'file'].indexOf(inputType) >= 0)) {
-        const pos = e.target.selectionEnd
-        setTimeout(
-          () => {
-            e.target.selectionStart = pos
-            e.target.selectionEnd = pos
-          }
-        )
-      }
+      // // 修复 IOS 光标跳转问题
+      // if (!(['number', 'file'].indexOf(inputType) >= 0)) {
+      //   const pos = e.target.selectionEnd
+      //   setTimeout(
+      //     () => {
+      //       e.target.selectionStart = pos
+      //       e.target.selectionEnd = pos
+      //     }
+      //   )
+      // }
 
       if (onChange) return onChange(e)
       if (onInput) return onInput(e)
     }
+  }
+
+  onPaste(e) {
+    const { onPaste } = this.props
+    this.onInputExcuted = false
+    Object.defineProperty(e, 'detail', {
+      enumerable: true,
+      value: {
+        value: e.target.value
+      }
+    })
+    onPaste && onPaste(e)
   }
 
   onFocus (e) {
@@ -181,6 +194,7 @@ class Input extends Nerv.Component {
         disabled={disabled}
         maxlength={maxLength}
         onInput={this.onInput}
+        onPaste={this.onPaste}
         onFocus={this.onFocus}
         onBlur={this.onBlur}
         autofocus={focus}

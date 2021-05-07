@@ -358,7 +358,8 @@ export default class MiniPlugin {
     new TaroNormalModulesPlugin().apply(compiler)
     new MiniLoaderPlugin({
       sourceDir: this.sourceDir,
-      fileType
+      fileType,
+      isBuildPlugin
     }).apply(compiler)
   }
 
@@ -736,7 +737,7 @@ export default class MiniPlugin {
   }
 
   getComponents (compiler: webpack.Compiler, fileList: Set<IComponent>, isRoot: boolean) {
-    const { buildAdapter, alias, isBuildQuickapp, fileType, constantsReplaceList, nodeModulesPath } = this.options
+    const { buildAdapter, alias, isBuildQuickapp, fileType, constantsReplaceList, nodeModulesPath, isBuildPlugin } = this.options
     fileList.forEach(file => {
       try {
         const isNative = file.isNative
@@ -823,7 +824,7 @@ export default class MiniPlugin {
         }
         taroFileTypeMap[file.path] = {
           type: isRoot ? PARSE_AST_TYPE.PAGE : PARSE_AST_TYPE.COMPONENT,
-          config: merge({}, isComponentConfig, buildUsingComponents(file.path, this.sourceDir, alias, depComponents), configObj),
+          config: merge({}, isComponentConfig, buildUsingComponents(file.path, this.sourceDir, alias, depComponents, isBuildPlugin), configObj),
           code,
           importStyles
         }
@@ -915,7 +916,7 @@ export default class MiniPlugin {
   }
 
   async generateMiniFiles (compilation: webpack.compilation.Compilation, commonStyles: Set<string>) {
-    const { isBuildQuickapp, fileType, buildAdapter, commonChunks, modifyBuildTempFileContent, modifyBuildAssets } = this.options
+    const { isBuildQuickapp, fileType, buildAdapter, commonChunks, modifyBuildTempFileContent, modifyBuildAssets, isBuildPlugin } = this.options
     if (typeof modifyBuildTempFileContent === 'function') {
       await modifyBuildTempFileContent(taroFileTypeMap)
     }
@@ -1069,6 +1070,20 @@ export default class MiniPlugin {
         }
       }
     })
+    if (isBuildPlugin) {
+      const pluginJSONPath = path.join(this.sourceDir, 'plugin', 'plugin.json')
+      if (pluginJSONPath) {
+        const pluginJSON = fs.readJSONSync(pluginJSONPath)
+        if (pluginJSON.main) {
+          pluginJSON.main = path.basename(pluginJSON.main, path.extname(pluginJSON.main)) + '.js'
+        }
+        const relativePath = this.getRelativePath(pluginJSONPath).replace(/\\/g, '/')
+        compilation.assets[relativePath] = {
+          size: () => JSON.stringify(pluginJSON).length,
+          source: () => JSON.stringify(pluginJSON)
+        }
+      }
+    }
     if (typeof modifyBuildAssets === 'function') {
       await modifyBuildAssets(compilation.assets)
     }
@@ -1077,7 +1092,8 @@ export default class MiniPlugin {
   getRelativePath (filePath) {
     let relativePath
     if (NODE_MODULES_REG.test(filePath)) {
-      relativePath = filePath.replace(this.options.nodeModulesPath, 'npm')
+      const npmDir = this.options.isBuildPlugin ? 'plugin/npm' : 'npm'
+      relativePath = filePath.replace(this.options.nodeModulesPath, npmDir)
     } else {
       relativePath = filePath.replace(this.sourceDir, '')
     }
